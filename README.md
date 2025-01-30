@@ -1,13 +1,16 @@
-Solana DEX SDK 🚀
-A simple and powerful JavaScript SDK for interacting with Raydium and other DEXs on Solana. Designed for developers, traders, and DeFi enthusiasts, this library enables seamless token swaps with minimal configuration.
+# Solana DEX SDK 🚀
 
-🌟 Features
-✔️ Easy-to-use API for swapping tokens on Raydium.
-✔️ Automatic handling of associated token accounts.
-✔️ Support for Solana transactions using the latest Solana Web3 SDK.
-✔️ Built-in priority fee optimization for fast transactions.
-✔️ Written in TypeScript for strong typing and reliability.
-✔️ Future support for Jupiter, Orca, and other Solana DEXs.
+A simple and powerful JavaScript SDK for interacting with **Raydium** and other **DEXs on Solana**.  
+Designed for **developers, traders, and DeFi enthusiasts**, this library enables seamless token swaps with **minimal configuration**.
+
+## 🌟 Features
+✔️ **Easy-to-use API** for swapping tokens on Raydium.  
+✔️ **Automatic handling** of associated token accounts.  
+✔️ **Support for Solana transactions** using the latest Solana Web3 SDK.  
+✔️ **Built-in priority fee optimization** for fast transactions.  
+✔️ **Written in TypeScript** for strong typing and reliability.  
+✔️ **Future support** for **Jupiter, Orca, and other Solana DEXs**.  
+
 
 📦 Installation
 You can install the package using npm:

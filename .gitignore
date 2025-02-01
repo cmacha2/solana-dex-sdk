@@ -1,3 +1,9 @@
 node_modules/
-dist/
+tests/
+src/
 .env
+.env.example
+.gitignore
+tsconfig.json
+jest.config.js
+*.log

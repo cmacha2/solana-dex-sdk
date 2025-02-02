@@ -26,34 +26,38 @@ yarn add solana-dex-sdk
 This is how you can quickly set up and perform a token swap on Raydium:
 
 ```
-import { RaydiumSwap, SwapConfig } from 'solana-dex-sdk';
+const { SolanaDexClient } = require('solana-dex-sdk');
+require('dotenv').config();
 
-// Initialize with your secret key and Solana RPC URL
-const swapper = new RaydiumSwap(
-    'YOUR_SECRET_KEY',
-    'https://api.mainnet-beta.solana.com'
+// Initialize the SolanaDexClient with your secret key and Solana RPC URL
+const swapper = new SolanaDexClient(
+    process.env.WALLET_SECRET_KEY, // Secret key from .env
+    process.env.HELIUS_RPC_URL    // Solana RPC URL from .env
 );
 
-const swapConfig: SwapConfig = {
+// Define the swap configuration
+const swapConfig = {
     inputMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
     outputMint: 'So11111111111111111111111111111111111111112',  // SOL
     amount: 1000000, // 1 USDC (USDC has 6 decimals)
     slippage: 1, // 1% slippage tolerance
     isInputSol: false,
-    isOutputSol: true
+    isOutputSol: true,
 };
 
-async function performSwap() {
+// Perform the swap
+const performSwap = async () => {
     try {
         const txIds = await swapper.swap(swapConfig);
         console.log('✅ Swap completed:', txIds);
     } catch (error) {
         console.error('❌ Swap failed:', error);
     }
-}
+};
 
 performSwap();
 ```
+
 ⚙️ Configuration
 You need a Solana RPC URL and a private key to initialize the swapper.
 It's recommended to use Helius, QuickNode, or an RPC provider for better performance.
@@ -61,7 +65,7 @@ It's recommended to use Helius, QuickNode, or an RPC provider for better perform
 ```
 # .env file (for security, don't expose your private key)
 WALLET_SECRET_KEY="YOUR_PRIVATE_KEY"
-HELIUS_RPC_URL="https://api.helius.xyz/v0/?api-key=YOUR_API_KEY"
+HELIUS_RPC_URL="https://api.helius.xyz/v0/?api-key=YOUR_API_KEY" # It Could be https://api.mainnet-beta.solana.com
 ```
 
 🛠 Supported Functionalities

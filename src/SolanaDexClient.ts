@@ -19,6 +19,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAccount,
   Account,
+  AccountLayout,
 } from "@solana/spl-token";
 import axios from "axios";
 import bs58 from "bs58";
@@ -49,6 +50,58 @@ export class SolanaDexClient {
   constructor(secretKey: string, rpcUrl: string) {
     this.owner = Keypair.fromSecretKey(bs58.decode(secretKey));
     this.connection = new Connection(rpcUrl);
+  }
+
+  /**
+   * Retrieves the SPL Token accounts owned by the wallet
+   * @returns Promise resolving to an array of token accounts
+   */
+  private async getTokenAccounts() {
+    const walletTokenAccounts = await this.connection.getTokenAccountsByOwner(
+      this.owner.publicKey,
+      {
+        programId: TOKEN_PROGRAM_ID,
+      }
+    );
+
+    return walletTokenAccounts.value.map((accountInfo) => ({
+      pubkey: accountInfo.pubkey,
+      programId: accountInfo.account.owner,
+      accountDetails: AccountLayout.decode(accountInfo.account.data),
+    }));
+  }
+
+  /**
+   * Fetches the balance of a specific SPL token for the current user.
+   *
+   * @param mint - The mint address of the SPL token (in string format).
+   * @returns A Promise that resolves to the token balance as a number.
+   * @throws An error if the balance cannot be fetched.
+   */
+  public async getTokenBalance(mint: string): Promise<number> {
+    try {
+      // Retrieve the user's token accounts
+      const userTokenAccounts = await this.getTokenAccounts();
+
+      // Find the token account associated with the mint
+      const tokenAccount = userTokenAccounts.find(
+        (account) => account.accountDetails.mint.toBase58() === mint
+      );
+
+      if (tokenAccount) {
+        // Fetch and return the token balance
+        const balance = await this.connection.getTokenAccountBalance(
+          tokenAccount.pubkey
+        );
+        return balance.value.uiAmount || 0;
+      }
+
+      // If no account is found, return 0
+      return 0;
+    } catch (error: any) {
+      console.error(`Failed to fetch token balance for mint ${mint}:`, error);
+      throw new Error(`Error fetching token balance: ${error.message}`);
+    }
   }
 
   /**
@@ -378,11 +431,7 @@ export class SolanaDexClient {
    */
   public subscribeToPrice(
     mint: string,
-    callback: (price: {
-      mint: string;
-      price: number;
-      timestamp: number;
-    }) => void,
+    callback: (price: TokenPrice) => void,
     interval: number = 1000
   ): void {
     if (this.priceSubscriptions.has(mint)) {

@@ -37,6 +37,7 @@ const MIN_SOL_BALANCE = 10000000; // 0.01 SOL
  */
 export class SolanaDexClient {
   private readonly connection: Connection;
+  private readonly rpcUrl: string;
   private readonly owner: Keypair;
   private readonly txVersion: string = "V0";
   private readonly isV0Tx: boolean = true;
@@ -50,6 +51,7 @@ export class SolanaDexClient {
   constructor(secretKey: string, rpcUrl: string) {
     this.owner = Keypair.fromSecretKey(bs58.decode(secretKey));
     this.connection = new Connection(rpcUrl);
+    this.rpcUrl = rpcUrl;
   }
 
   /**
@@ -496,4 +498,38 @@ export class SolanaDexClient {
         return -1; // Devuelve -1 en caso de error
     }
 }
+
+    /**
+ * Obtiene los detalles de un token (nombre, símbolo, decimales, etc.) utilizando la lista de tokens de Jupiter.
+ * @param mint - La dirección de mint del token.
+ * @returns Un objeto con los detalles del token o null si no se encuentra.
+ */
+    async getTokenInfo(mint: string): Promise<string> {
+        try {
+          const response = await fetch(this.rpcUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 'my-id',
+              method: 'getAsset',
+              params: { id: mint },
+            }),
+          });
+    
+          const data = await response.json();
+    
+          if (data.result && data.result.content && data.result.content.metadata) {
+            return data.result.content.metadata;
+          }
+        } catch (error) {
+          console.error(`Error al obtener información del token ${mint}:`, error);
+        }
+    
+        // Si no se puede obtener el nombre, devuelve una versión abreviada de la dirección del token
+        return mint.slice(0, 4) + '...' + mint.slice(-4);
+      }
+    
 }

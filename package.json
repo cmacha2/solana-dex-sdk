@@ -1,11 +1,20 @@
 {
   "name": "solana-dex-sdk",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A simple SDK to interact with Raydium and Solana DEXs",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",  
+  "module": "dist/esm/index.js", 
+  "types": "dist/cjs/index.d.ts",  
+  "exports": {
+    ".": {
+      "require": "./dist/cjs/index.js",
+      "import": "./dist/esm/index.js"   
+    }
+  },
   "scripts": {
-    "build": "tsc",
+    "build:cjs": "tsc --module CommonJS --outDir dist/cjs", 
+    "build:esm": "tsc --module ESNext --outDir dist/esm",  
+    "build": "npm run build:cjs && npm run build:esm", 
     "test": "jest",
     "example": "node dist/examples/basicSwap.js",
     "prepublish": "npm run build",

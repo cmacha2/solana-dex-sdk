@@ -6,3 +6,10 @@ export interface SwapConfig {
     isInputSol: boolean;
     isOutputSol: boolean;
 }
+
+export interface TokenPrice {
+    mint: string;
+    price: number;
+    timestamp: number;
+  }
+  

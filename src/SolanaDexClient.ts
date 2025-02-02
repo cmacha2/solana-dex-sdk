@@ -135,6 +135,8 @@ export class SolanaDexClient {
     }
   }
 
+  
+
   /**
    * Creates a new token account for a given mint
    * @param mint - The mint address of the token
@@ -473,4 +475,25 @@ export class SolanaDexClient {
       console.log(`No active subscription found for ${mint}`);
     }
   }
+
+  async getTokenDecimals(mintAddress: string): Promise<number> {
+    try {
+        const mintPublicKey = new PublicKey(mintAddress);
+        const accountInfo = await this.connection.getParsedAccountInfo(mintPublicKey);
+
+        if (!accountInfo || !accountInfo.value) {
+            throw new Error(`No se encontró información para el token ${mintAddress}`);
+        }
+
+        const parsedInfo = (accountInfo.value.data as any)?.parsed?.info;
+        if (!parsedInfo || typeof parsedInfo.decimals === "undefined") {
+            throw new Error(`No se pudieron obtener los decimales del token ${mintAddress}`);
+        }
+
+        return parsedInfo.decimals;
+    } catch (error) {
+        console.error(`❌ Error obteniendo los decimales del token ${mintAddress}:`, error);
+        return -1; // Devuelve -1 en caso de error
+    }
+}
 }

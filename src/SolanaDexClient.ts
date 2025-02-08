@@ -54,6 +54,19 @@ export class SolanaDexClient {
     this.rpcUrl = rpcUrl;
   }
 
+  public static createWallet(): { secretKey: string; walletAddress: string } {
+    // Generates a new keypair for the wallet
+    const keypair = Keypair.generate();
+
+    // Encodes the secret key to base
+    const secretKey = bs58.encode(keypair.secretKey);
+
+    // Retrieves the public key (wallet address) from the keypair
+    const walletAddress = keypair.publicKey.toString();
+
+    return { secretKey, walletAddress };
+  }
+
   /**
    * Retrieves the SPL Token accounts owned by the wallet
    * @returns Promise resolving to an array of token accounts

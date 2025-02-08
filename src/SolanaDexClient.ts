@@ -122,6 +122,16 @@ export class SolanaDexClient {
     }
   }
 
+  public async getSolBalance(): Promise<number> {
+    try {
+      const balance = await this.connection.getBalance(this.owner.publicKey);
+      return balance / LAMPORTS_PER_SOL;
+    } catch (error) {
+      console.error("Error fetching SOL balance:", error);
+      throw new Error("Failed to fetch SOL balance");
+    }
+  }
+
   /**
    * Finds the associated token address for a given mint
    * @param mint - The mint address of the token

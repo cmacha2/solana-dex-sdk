@@ -11,6 +11,8 @@ import {
   sendAndConfirmTransaction,
   Connection,
   PublicKey,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
@@ -19,6 +21,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAccount,
   Account,
+  createTransferInstruction,
   AccountLayout,
 } from "@solana/spl-token";
 import axios from "axios";
@@ -545,4 +548,143 @@ export class SolanaDexClient {
         return mint.slice(0, 4) + '...' + mint.slice(-4);
       }
     
+
+    /**
+   * Sends SOL from the connected wallet to another wallet.
+   *
+   * @param destination - The destination wallet's public key (as a string).
+   * @param amount - The amount of SOL to send.
+   *                 (Note: This value is in SOL. It will be converted to lamports internally.)
+   * @returns Promise resolving to the transaction signature.
+   */
+  public async sendSol(destination: string, amount: number): Promise<string> {
+    try {
+      const destPubKey = new PublicKey(destination);
+      // Convert SOL to lamports (rounding to the nearest integer)
+      const lamports = Math.round(amount * LAMPORTS_PER_SOL);
+
+      // Optionally, check for sufficient balance (leaving a buffer for fees)
+      const balance = await this.connection.getBalance(this.owner.publicKey);
+      if (balance < lamports + MIN_SOL_BALANCE) {
+        throw new Error(
+          `Insufficient funds: Available ${
+            balance / LAMPORTS_PER_SOL
+          } SOL, required ${amount} SOL plus fees.`
+        );
+      }
+
+      // Create a transaction to transfer SOL
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: this.owner.publicKey,
+          toPubkey: destPubKey,
+          lamports,
+        })
+      );
+
+      // Send and confirm the transaction
+      const signature = await sendAndConfirmTransaction(
+        this.connection,
+        transaction,
+        [this.owner],
+        { commitment: "confirmed" }
+      );
+
+      console.log(`✅ Transaction successful: ${signature}`);
+      return signature;
+    } catch (error) {
+      console.error("❌ Error sending SOL:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Sends a specific SPL token from the connected wallet to another wallet.
+   *
+   * @param destination - The destination wallet's public key (as a string).
+   * @param mint - The mint address of the token to send.
+   * @param amount - The amount of tokens to send (in human-readable format).
+   * @returns Promise resolving to the transaction signature.
+   */
+  public async sendToken(
+    destination: string,
+    mint: string,
+    amount: number
+  ): Promise<string> {
+    try {
+      // 1. Get the token decimals and calculate the amount in the smallest unit.
+      const decimals = await this.getTokenDecimals(mint);
+      if (decimals < 0) {
+        throw new Error("Failed to retrieve token decimals.");
+      }
+      const tokenAmount = BigInt(Math.round(amount * Math.pow(10, decimals)));
+
+      // 2. Get the sender's associated token account for that token.
+      const senderTokenAccount = await this.findAssociatedTokenAddress(mint);
+      const senderTokenAccountInfo = await getAccount(this.connection, senderTokenAccount);
+      if (senderTokenAccountInfo.amount < tokenAmount) {
+        throw new Error(
+          `Insufficient token balance. Required: ${tokenAmount.toString()} units, Available: ${senderTokenAccountInfo.amount.toString()} units.`
+        );
+      }
+
+      // 3. Determine the recipient's associated token account for that token.
+      const destinationPubKey = new PublicKey(destination);
+      const destinationTokenAccount = await getAssociatedTokenAddress(
+        new PublicKey(mint),
+        destinationPubKey,
+        false,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+
+      // 4. Prepare the instructions.
+      const instructions = [];
+
+      // Check if the recipient's associated token account exists.
+      try {
+        await getAccount(this.connection, destinationTokenAccount);
+      } catch (error) {
+        // If it doesn't exist, add an instruction to create it.
+        instructions.push(
+          createAssociatedTokenAccountInstruction(
+            this.owner.publicKey, // Payer for account creation
+            destinationTokenAccount,
+            destinationPubKey,
+            new PublicKey(mint),
+            TOKEN_PROGRAM_ID,
+            ASSOCIATED_TOKEN_PROGRAM_ID
+          )
+        );
+      }
+
+      // 5. Create the token transfer instruction.
+      const transferInstruction = createTransferInstruction(
+        senderTokenAccount,       // Sender's associated token account
+        destinationTokenAccount,  // Recipient's associated token account
+        this.owner.publicKey,     // Signer (sender)
+        tokenAmount,              // Amount to transfer in smallest units
+        [],
+        TOKEN_PROGRAM_ID
+      );
+      instructions.push(transferInstruction);
+
+      // 6. Create and send the transaction.
+      const transaction = new Transaction();
+      transaction.add(...instructions);
+
+      const signature = await sendAndConfirmTransaction(
+        this.connection,
+        transaction,
+        [this.owner],
+        { commitment: "confirmed" }
+      );
+
+      console.log(`Token transfer successful: ${signature}`);
+      return signature;
+    } catch (error) {
+      console.error("Error sending token:", error);
+      throw error;
+    }
+  }
 }
